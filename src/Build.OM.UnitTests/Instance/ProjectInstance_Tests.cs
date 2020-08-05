@@ -16,6 +16,7 @@ using Microsoft.Build.BackEnd;
 using Microsoft.Build.Shared;
 using Xunit;
 using Xunit.Abstractions;
+using Shouldly;
 
 namespace Microsoft.Build.UnitTests.OM.Instance
 {
@@ -944,6 +945,36 @@ namespace Microsoft.Build.UnitTests.OM.Instance
             Helpers.GetFirst(instance.Items).EvaluatedInclude = "new";
             instance.SetProperty("g", "gnew");
             instance.SetProperty("username", "someone_else_here");
+        }
+
+        [Fact]
+        public void ProjectInstance_Serialization_Roundtrip()
+        {
+            using MemoryStream stream = new MemoryStream();
+
+            var protoInstance = GetSampleProjectInstance();
+            protoInstance.Serialize(stream);
+
+            stream.Seek(0, SeekOrigin.Begin);
+
+            var deserializedInstance = new ProjectInstance(stream);
+
+            // Quick validation of Items, assuming order is preserved
+            deserializedInstance.ItemTypes.ShouldBe(protoInstance.ItemTypes);
+            var protoItemInstances = new List<ProjectItemInstance>(protoInstance.Items);
+            int i = 0;
+            foreach (var deserializedItemInstance in deserializedInstance.Items)
+            {
+                deserializedItemInstance.ToString().ShouldBe(protoItemInstances[i++].ToString());
+            }
+
+            // Quick validation of Properties, assuming order is preserved
+            var protoPropertyInstances = new List<ProjectPropertyInstance>(protoInstance.Properties);
+            i = 0;
+            foreach (var deserializedPropertyInstance in deserializedInstance.Properties)
+            {
+                deserializedPropertyInstance.ToString().ShouldBe(protoPropertyInstances[i++].ToString());
+            }
         }
 
         /// <summary>

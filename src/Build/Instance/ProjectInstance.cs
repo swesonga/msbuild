@@ -499,6 +499,16 @@ namespace Microsoft.Build.Execution
         }
 
         /// <summary>
+        /// Constructor for deserialization (experimental).
+        /// </summary>
+        /// <param name="stream">The stream to deserialize the object from.</param>
+        public ProjectInstance(Stream stream)
+        {
+            ITranslator translator = BinaryTranslator.GetReadTranslator(stream, null);
+            ((ITranslatable)this).Translate(translator);
+        }
+
+        /// <summary>
         /// Deep clone of this object.
         /// Useful for compiling a single file; or for keeping resolved assembly references between builds.
         /// </summary>
@@ -2314,6 +2324,16 @@ namespace Microsoft.Build.Execution
                 _properties = null;
                 _items = null;
             }
+        }
+
+        /// <summary>
+        /// Serializes this object to a stream (experimental).
+        /// </summary>
+        /// <param name="stream">The stream to serialize the object to.</param>
+        public void Serialize(Stream stream)
+        {
+            ITranslator translator = BinaryTranslator.GetWriteTranslator(stream);
+            ((ITranslatable)this).Translate(translator);
         }
 
         /// <summary>

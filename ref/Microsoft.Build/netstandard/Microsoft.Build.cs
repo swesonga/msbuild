@@ -1110,6 +1110,7 @@ namespace Microsoft.Build.Execution
         public ProjectInstance(Microsoft.Build.Construction.ProjectRootElement xml) { }
         public ProjectInstance(Microsoft.Build.Construction.ProjectRootElement xml, System.Collections.Generic.IDictionary<string, string> globalProperties, string toolsVersion, Microsoft.Build.Evaluation.ProjectCollection projectCollection) { }
         public ProjectInstance(Microsoft.Build.Construction.ProjectRootElement xml, System.Collections.Generic.IDictionary<string, string> globalProperties, string toolsVersion, string subToolsetVersion, Microsoft.Build.Evaluation.ProjectCollection projectCollection) { }
+        public ProjectInstance(System.IO.Stream stream) { }
         public ProjectInstance(string projectFile) { }
         public ProjectInstance(string projectFile, System.Collections.Generic.IDictionary<string, string> globalProperties, string toolsVersion) { }
         public ProjectInstance(string projectFile, System.Collections.Generic.IDictionary<string, string> globalProperties, string toolsVersion, Microsoft.Build.Evaluation.ProjectCollection projectCollection) { }
@@ -1162,6 +1163,7 @@ namespace Microsoft.Build.Execution
         public static string GetPropertyValueEscaped(Microsoft.Build.Execution.ProjectPropertyInstance property) { throw null; }
         public bool RemoveItem(Microsoft.Build.Execution.ProjectItemInstance item) { throw null; }
         public bool RemoveProperty(string name) { throw null; }
+        public void Serialize(System.IO.Stream stream) { }
         public Microsoft.Build.Execution.ProjectPropertyInstance SetProperty(string name, string evaluatedValue) { throw null; }
         public Microsoft.Build.Construction.ProjectRootElement ToProjectRootElement() { throw null; }
         public void UpdateStateFrom(Microsoft.Build.Execution.ProjectInstance projectState) { }
