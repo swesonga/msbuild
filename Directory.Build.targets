@@ -6,7 +6,7 @@
     <Description Condition="'$(Description)' == ''">$(TargetFileName)</Description>
   </PropertyGroup>
 
-  <ItemGroup>
+    <ItemGroup>
     <None Include="$(ThirdPartyNotice)" Pack="true" PackagePath="notices" Visible="false" Condition=" '$(IsPackable)' == 'true' " />
   </ItemGroup>
 
