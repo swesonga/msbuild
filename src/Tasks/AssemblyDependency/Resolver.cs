@@ -161,7 +161,7 @@ namespace Microsoft.Build.Tasks
             if (!allowMismatchBetweenFusionNameAndFileName)
             {
                 string candidateBaseName = Path.GetFileNameWithoutExtension(pathToCandidateAssembly);
-                if (String.Compare(assemblyName?.Name, candidateBaseName, StringComparison.CurrentCultureIgnoreCase) != 0)
+                if (!String.Equals(assemblyName?.Name, candidateBaseName, StringComparison.CurrentCultureIgnoreCase))
                 {
                     if (searchLocation != null)
                     {
@@ -179,7 +179,7 @@ namespace Microsoft.Build.Tasks
                 }
             }
 
-            bool isSimpleAssemblyName = assemblyName != null && assemblyName.IsSimpleName;
+            bool isSimpleAssemblyName = assemblyName?.IsSimpleName == true;
 
             if (fileExists(pathToCandidateAssembly))
             {
@@ -242,8 +242,8 @@ namespace Microsoft.Build.Tasks
                         }
                     }
 
-                    bool matchedSpecificVersion = (wantSpecificVersion && assemblyName != null && assemblyName.Equals(targetAssemblyName));
-                    bool matchPartialName = !wantSpecificVersion && assemblyName != null && assemblyName.PartialNameCompare(targetAssemblyName);
+                    bool matchedSpecificVersion = (wantSpecificVersion && assemblyName?.Equals(targetAssemblyName) == true);
+                    bool matchPartialName = !wantSpecificVersion && assemblyName?.PartialNameCompare(targetAssemblyName) == true;
 
                     if (matchedSpecificVersion || matchPartialName)
                     {
@@ -350,7 +350,7 @@ namespace Microsoft.Build.Tasks
                             AssemblyNameExtension foundAssembly = getAssemblyName(fullPath);
 
                             // If the processor architecture does not match the we should continue to see if there is a better match.
-                            if (foundAssembly != null && foundAssembly.AssemblyName.ProcessorArchitecture == ProcessorArchitecture.MSIL)
+                            if (foundAssembly?.AssemblyName.ProcessorArchitecture == ProcessorArchitecture.MSIL)
                             {
                                 return fullPath;
                             }
@@ -373,7 +373,7 @@ namespace Microsoft.Build.Tasks
                     {
                         foreach (string executableExtension in executableExtensions)
                         {
-                            if (String.Compare(executableExtension, weakNameBaseExtension, StringComparison.CurrentCultureIgnoreCase) == 0)
+                            if (String.Equals(executableExtension, weakNameBaseExtension, StringComparison.CurrentCultureIgnoreCase))
                             {
                                 string fullPath = Path.Combine(directory, weakNameBase);
                                 var extensionlessAssemblyName = new AssemblyNameExtension(weakNameBaseFileName);

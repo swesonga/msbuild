@@ -90,7 +90,7 @@ namespace Microsoft.Build.Evaluation
 
             GetReferencedItemNamesAndMetadata(expression, 0, expression.Length, ref pair, ShredderOptions.MetadataOutsideTransforms);
 
-            bool result = (pair.Metadata != null && pair.Metadata.Count > 0);
+            bool result = (pair.Metadata?.Count > 0);
 
             return result;
         }
@@ -127,10 +127,8 @@ namespace Microsoft.Build.Evaluation
                 if (Sink(expression, ref i, end, '@', '('))
                 {
                     List<ItemExpressionCapture> transformExpressions = null;
-                    string itemName = null;
                     string separator = null;
                     int separatorStart = -1;
-                    int separatorLength = -1;
 
                     // Start of a possible item list expression
 
@@ -164,7 +162,7 @@ namespace Microsoft.Build.Evaluation
                     string name = expression.Substring(startOfName, i - startOfName);
 
                     // return the item that we're working with
-                    itemName = name;
+                    string itemName = name;
 
                     SinkWhitespace(expression, ref i);
                     bool transformOrFunctionFound = true;
@@ -235,8 +233,7 @@ namespace Microsoft.Build.Evaluation
                         }
 
                         separatorStart = i - startPoint;
-                        separatorLength = closingQuote - i;
-                        separator = expression.Substring(i, separatorLength);
+                        separator = expression.Substring(i, closingQuote - i);
 
                         i = closingQuote + 1;
                     }
