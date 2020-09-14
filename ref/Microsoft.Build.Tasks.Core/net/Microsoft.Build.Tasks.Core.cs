@@ -884,6 +884,8 @@ namespace Microsoft.Build.Tasks
         public string AppConfigFile { get { throw null; } set { } }
         public Microsoft.Build.Framework.ITaskItem[] Assemblies { get { throw null; } set { } }
         public Microsoft.Build.Framework.ITaskItem[] AssemblyFiles { get { throw null; } set { } }
+        public string AssemblyInformationCacheOutputPath { get { throw null; } set { } }
+        public Microsoft.Build.Framework.ITaskItem[] AssemblyInformationCachePaths { get { throw null; } set { } }
         public bool AutoUnify { get { throw null; } set { } }
         public string[] CandidateAssemblyFiles { get { throw null; } set { } }
         public bool CopyLocalDependenciesWhenParentReferenceInGac { get { throw null; } set { } }
@@ -940,6 +942,7 @@ namespace Microsoft.Build.Tasks
         public string TargetFrameworkVersion { get { throw null; } set { } }
         public string TargetProcessorArchitecture { get { throw null; } set { } }
         public bool UnresolveFrameworkAssembliesFromHigherFrameworks { get { throw null; } set { } }
+        public bool UseResolveAssemblyReferenceService { get { throw null; } set { } }
         public string WarnOrErrorOnTargetArchitectureMismatch { get { throw null; } set { } }
         public override bool Execute() { throw null; }
     }

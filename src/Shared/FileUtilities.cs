@@ -187,7 +187,7 @@ namespace Microsoft.Build.Shared
         internal static string EnsureTrailingSlash(string fileSpec)
         {
             fileSpec = FixFilePath(fileSpec);
-            if (fileSpec.Length > 0 && !EndsWithSlash(fileSpec))
+            if (fileSpec.Length > 0 && !IsSlash(fileSpec[fileSpec.Length - 1]))
             {
                 fileSpec += Path.DirectorySeparatorChar;
             }
@@ -196,17 +196,37 @@ namespace Microsoft.Build.Shared
         }
 
         /// <summary>
-        /// Ensures the path does not have a leading slash.
+        /// Ensures the path does not have a leading or trailing slash after removing the first 'start' characters.
         /// </summary>
-        internal static string EnsureNoLeadingSlash(string path)
+        internal static string EnsureNoLeadingOrTrailingSlash(string path, int start)
         {
-            path = FixFilePath(path);
-            if (path.Length > 0 && IsSlash(path[0]))
+            int stop = path.Length;
+            while (start < stop && IsSlash(path[start]))
             {
-                path = path.Substring(1);
+                start++;
+            }
+            while (start < stop && IsSlash(path[stop - 1]))
+            {
+                stop--;
             }
 
-            return path;
+            return FixFilePath(path.Substring(start, stop - start));
+        }
+
+        /// <summary>
+        /// Ensures the path does not have a leading slash after removing the first 'start' characters but does end in a slash.
+        /// </summary>
+        internal static string EnsureTrailingNoLeadingSlash(string path, int start)
+        {
+            int stop = path.Length;
+            while (start < stop && IsSlash(path[start]))
+            {
+                start++;
+            }
+
+            return FixFilePath(start < stop && IsSlash(path[stop - 1]) ?
+                path.Substring(start) :
+                path.Substring(start) + Path.DirectorySeparatorChar);
         }
 
         /// <summary>
@@ -242,7 +262,7 @@ namespace Microsoft.Build.Shared
         /// <returns>true, if slash</returns>
         internal static bool IsSlash(char c)
         {
-            return ((c == Path.DirectorySeparatorChar) || (c == Path.AltDirectorySeparatorChar));
+            return (c == Path.DirectorySeparatorChar) || (c == Path.AltDirectorySeparatorChar);
         }
 
         /// <summary>
@@ -503,8 +523,8 @@ namespace Microsoft.Build.Shared
             char doubleQuote = '\"';
 
             bool hasQuotes = path.Length > 2
-                && (path[0] == singleQuote && path[endId] == singleQuote
-                || path[0] == doubleQuote && path[endId] == doubleQuote);
+                && ((path[0] == singleQuote && path[endId] == singleQuote)
+                || (path[0] == doubleQuote && path[endId] == doubleQuote));
 
             return hasQuotes ? path.Substring(1, endId - 1) : path;
         }
@@ -542,8 +562,8 @@ namespace Microsoft.Build.Shared
             char doubleQuote = '\"';
 
             bool hasQuotes = path.Length > 2
-                && (path[0] == singleQuote && path[endId] == singleQuote
-                || path[0] == doubleQuote && path[endId] == doubleQuote);
+                && ((path[0] == singleQuote && path[endId] == singleQuote)
+                || (path[0] == doubleQuote && path[endId] == doubleQuote));
 
             return hasQuotes ? path.Slice(1, endId - 1) : path;
         }
@@ -576,8 +596,8 @@ namespace Microsoft.Build.Shared
             // Check for actual files or directories under / that get missed by the above logic
             bool shouldCheckFileOrDirectory = !shouldCheckDirectory && value.Length > 0 && value[0] == '/';
 
-            return shouldCheckDirectory && DefaultFileSystem.DirectoryExists(Path.Combine(baseDirectory, value.Substring(0, directoryLength)))
-                || shouldCheckFileOrDirectory && DefaultFileSystem.DirectoryEntryExists(value);
+            return (shouldCheckDirectory && DefaultFileSystem.DirectoryExists(Path.Combine(baseDirectory, value.Substring(0, directoryLength))))
+                || (shouldCheckFileOrDirectory && DefaultFileSystem.DirectoryEntryExists(value));
         }
 
 #if FEATURE_SPAN
@@ -596,8 +616,8 @@ namespace Microsoft.Build.Shared
             bool shouldCheckFileOrDirectory = !shouldCheckDirectory && value.Length > 0 && value[0] == '/';
             ReadOnlySpan<char> directory = value.Slice(0, directoryLength);
 
-            return shouldCheckDirectory && DefaultFileSystem.DirectoryExists(Path.Combine(baseDirectory, directory.ToString()))
-                || shouldCheckFileOrDirectory && DefaultFileSystem.DirectoryEntryExists(value.ToString());
+            return (shouldCheckDirectory && DefaultFileSystem.DirectoryExists(Path.Combine(baseDirectory, directory.ToString())))
+                || (shouldCheckFileOrDirectory && DefaultFileSystem.DirectoryEntryExists(value.ToString()));
         }
 #endif
 
@@ -634,7 +654,7 @@ namespace Microsoft.Build.Shared
         /// <returns></returns>
         internal static bool HasExtension(string fileName, string[] allowedExtensions)
         {
-            Debug.Assert(allowedExtensions != null && allowedExtensions.Length > 0);
+            Debug.Assert(allowedExtensions?.Length > 0);
 
             // Easiest way to invoke invalid path chars
             // check, which callers are relying on.
@@ -1072,7 +1092,7 @@ namespace Microsoft.Build.Shared
         {
             ErrorUtilities.VerifyThrowArgumentLength(path, nameof(path));
 
-            Uri pathUri = null;
+            Uri pathUri;
 
             // Try absolute first, then fall back on relative, otherwise it
             // makes some absolute UNC paths like (\\foo\bar) relative ...

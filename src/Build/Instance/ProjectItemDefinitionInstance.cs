@@ -38,7 +38,7 @@ namespace Microsoft.Build.Execution
         /// <param name="itemType">The type of item this definition object represents.</param>
         internal ProjectItemDefinitionInstance(string itemType)
         {
-            ErrorUtilities.VerifyThrowArgumentNull(itemType, "itemType");
+            ErrorUtilities.VerifyThrowArgumentNull(itemType, nameof(itemType));
 
             _itemType = itemType;
         }
@@ -126,7 +126,7 @@ namespace Microsoft.Build.Execution
         }
 
         /// <summary>
-        /// Implementation of IKeyed exposing the item type, so these 
+        /// Implementation of IKeyed exposing the item type, so these
         /// can be put in a dictionary conveniently.
         /// </summary>
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
@@ -142,7 +142,7 @@ namespace Microsoft.Build.Execution
         [DebuggerStepThrough]
         public ProjectMetadataInstance GetMetadata(string name)
         {
-            return (_metadata == null) ? null : _metadata[name];
+            return _metadata?[name];
         }
 
         #region IMetadataTable Members
