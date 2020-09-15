@@ -341,5 +341,38 @@ namespace Microsoft.Build.Engine.UnitTests.Globbing
 
             Assert.True(glob.IsMatch(stringToMatch));
         }
+
+        [Theory]
+        [InlineData(
+            "a/b/c",
+            "**"
+            )]
+        [InlineData(
+            "a/b/c",
+            "../../**"
+            )]
+        [InlineData(
+            "a/b/c",
+            "../d/e/**"
+            )]
+        public void Glob_Serialization_Roundtrip(string globRoot, string filespec)
+        {
+            using MemoryStream stream = new MemoryStream();
+
+            var protoGlob = MSBuildGlob.Parse(globRoot, filespec);
+            protoGlob.Serialize(stream);
+
+            stream.Seek(0, SeekOrigin.Begin);
+
+            var deserializedGlob = new MSBuildGlob(stream);
+
+            Assert.Equal(deserializedGlob.FilenamePart, protoGlob.FilenamePart);
+            Assert.Equal(deserializedGlob.FixedDirectoryPart, protoGlob.FixedDirectoryPart);
+            Assert.Equal(deserializedGlob.IsLegal, protoGlob.IsLegal);
+            Assert.Equal(deserializedGlob.WildcardDirectoryPart, protoGlob.WildcardDirectoryPart);
+
+            Assert.Equal(deserializedGlob.IsMatch("a"), protoGlob.IsMatch("a"));
+            Assert.Equal(deserializedGlob.IsMatch("d"), protoGlob.IsMatch("d"));
+        }
     }
 }

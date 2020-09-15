@@ -1445,7 +1445,7 @@ namespace Microsoft.Build.Globbing
     }
     public partial class MSBuildGlob : Microsoft.Build.Globbing.IMSBuildGlob
     {
-        internal MSBuildGlob() { }
+        public MSBuildGlob(System.IO.Stream stream) { }
         public string FilenamePart { get { throw null; } }
         public string FixedDirectoryPart { get { throw null; } }
         public bool IsLegal { get { throw null; } }
@@ -1454,6 +1454,7 @@ namespace Microsoft.Build.Globbing
         public Microsoft.Build.Globbing.MSBuildGlob.MatchInfoResult MatchInfo(string stringToMatch) { throw null; }
         public static Microsoft.Build.Globbing.MSBuildGlob Parse(string fileSpec) { throw null; }
         public static Microsoft.Build.Globbing.MSBuildGlob Parse(string globRoot, string fileSpec) { throw null; }
+        public void Serialize(System.IO.Stream stream) { }
         [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
         public partial struct MatchInfoResult
         {
