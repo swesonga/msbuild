@@ -5,6 +5,7 @@
 using System;
 using System.IO;
 using System.Text.RegularExpressions;
+using Microsoft.Build.BackEnd;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Shared;
 
@@ -17,7 +18,7 @@ namespace Microsoft.Build.Globbing
     ///     - wildcard directory part: "**/*test*/**/" in "a/b/**/*test*/**/*.cs"
     ///     - file name part: "*.cs" in "a/b/**/*test*/**/*.cs"
     /// </summary>
-    public class MSBuildGlob : IMSBuildGlob
+    public class MSBuildGlob : IMSBuildGlob, ITranslatable
     {
         private readonly struct GlobState
         {
@@ -82,9 +83,36 @@ namespace Microsoft.Build.Globbing
         /// </summary>
         public bool IsLegal => _state.Value.IsLegal;
 
-        private MSBuildGlob(Lazy<GlobState> state)
+        private string _globRoot;
+        private string _fileSpec;
+
+        private MSBuildGlob(Lazy<GlobState> state, string globRoot, string fileSpec)
         {
             this._state = state;
+            this._globRoot = globRoot;
+            this._fileSpec = fileSpec;
+        }
+
+        /// <summary>
+        /// Constructor for deserialization (experimental).
+        /// </summary>
+        /// <param name="stream">The stream to deserialize the object from.</param>
+        public MSBuildGlob(Stream stream)
+        {
+            ITranslator translator = BinaryTranslator.GetReadTranslator(stream, null);
+            ((ITranslatable)this).Translate(translator);
+
+            this._state = CreateLazyGlobState(this._globRoot, this._fileSpec);
+        }
+
+        /// <summary>
+        /// Serializes this object to a stream (experimental).
+        /// </summary>
+        /// <param name="stream">The stream to serialize the object to.</param>
+        public void Serialize(Stream stream)
+        {
+            ITranslator translator = BinaryTranslator.GetWriteTranslator(stream);
+            ((ITranslatable)this).Translate(translator);
         }
 
         /// <inheritdoc />
@@ -152,33 +180,11 @@ namespace Microsoft.Build.Globbing
             return normalizedInput;
         }
 
-        /// <summary>
-        ///     Parse the given <paramref name="fileSpec" /> into a <see cref="MSBuildGlob" /> using a given
-        ///     <paramref name="globRoot" />.
-        /// </summary>
-        /// <param name="globRoot">
-        ///     The root of the glob.
-        ///     The fixed directory part of the glob and the match arguments (<see cref="IsMatch" /> and <see cref="MatchInfo" />)
-        ///     will get normalized against this root.
-        ///     If empty, the current working directory is used.
-        ///     Cannot be null, and cannot contain invalid path arguments.
-        /// </param>
-        /// <param name="fileSpec">The string to parse</param>
-        /// <returns></returns>
-        public static MSBuildGlob Parse(string globRoot, string fileSpec)
+        private static Lazy<GlobState> CreateLazyGlobState(string globRoot, string fileSpec)
         {
-            ErrorUtilities.VerifyThrowArgumentNull(globRoot, nameof(globRoot));
-            ErrorUtilities.VerifyThrowArgumentNull(fileSpec, nameof(fileSpec));
-            ErrorUtilities.VerifyThrowArgumentInvalidPath(globRoot, nameof(globRoot));
-
-            if (globRoot == string.Empty)
-            {
-                globRoot = Directory.GetCurrentDirectory();
-            }
-
             globRoot = OpportunisticIntern.InternStringIfPossible(FileUtilities.NormalizePath(globRoot).WithTrailingSlash());
 
-            var lazyState = new Lazy<GlobState>(() =>
+            return new Lazy<GlobState>(() =>
             {
                 string fixedDirectoryPart = null;
                 string wildcardDirectoryPart = null;
@@ -228,8 +234,33 @@ namespace Microsoft.Build.Globbing
                 return new GlobState(globRoot, fileSpec, isLegalFileSpec, fixedDirectoryPart, wildcardDirectoryPart, filenamePart, matchFileExpression, needsRecursion, regex);
             },
             true);
+        }
 
-            return new MSBuildGlob(lazyState);
+        /// <summary>
+        ///     Parse the given <paramref name="fileSpec" /> into a <see cref="MSBuildGlob" /> using a given
+        ///     <paramref name="globRoot" />.
+        /// </summary>
+        /// <param name="globRoot">
+        ///     The root of the glob.
+        ///     The fixed directory part of the glob and the match arguments (<see cref="IsMatch" /> and <see cref="MatchInfo" />)
+        ///     will get normalized against this root.
+        ///     If empty, the current working directory is used.
+        ///     Cannot be null, and cannot contain invalid path arguments.
+        /// </param>
+        /// <param name="fileSpec">The string to parse</param>
+        /// <returns></returns>
+        public static MSBuildGlob Parse(string globRoot, string fileSpec)
+        {
+            ErrorUtilities.VerifyThrowArgumentNull(globRoot, nameof(globRoot));
+            ErrorUtilities.VerifyThrowArgumentNull(fileSpec, nameof(fileSpec));
+            ErrorUtilities.VerifyThrowArgumentInvalidPath(globRoot, nameof(globRoot));
+
+            if (globRoot == string.Empty)
+            {
+                globRoot = Directory.GetCurrentDirectory();
+            }
+
+            return new MSBuildGlob(CreateLazyGlobState(globRoot, fileSpec), globRoot, fileSpec);
         }
 
         private static string NormalizeTheFixedDirectoryPartAgainstTheGlobRoot(string fixedDirPart, string globRoot)
@@ -250,6 +281,12 @@ namespace Microsoft.Build.Globbing
         public static MSBuildGlob Parse(string fileSpec)
         {
             return Parse(string.Empty, fileSpec);
+        }
+
+        void ITranslatable.Translate(ITranslator translator)
+        {
+            translator.Translate(ref _globRoot);
+            translator.Translate(ref _fileSpec);
         }
 
         /// <summary>
