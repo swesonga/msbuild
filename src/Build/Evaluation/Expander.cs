@@ -481,7 +481,7 @@ namespace Microsoft.Build.Evaluation
         /// </summary>
         private static bool IsTruncationEnabled(ExpanderOptions options)
         {
-            return (options & ExpanderOptions.Truncate) != 0 && !Traits.Instance.EscapeHatches.DoNotTruncateConditions;
+            return (options & ExpanderOptions.Truncate) != 0 && !Traits.Instance.EscapeHatches.DoNotTruncateConditions && ChangeWaves.AreFeaturesEnabled(ChangeWaves.Wave16_8);
         }
 
         /// <summary>
@@ -4006,6 +4006,14 @@ namespace Microsoft.Build.Evaluation
                             if (TryGetArgs(args, out string arg1, out int arg2))
                             {
                                 returnVal = IntrinsicFunctions.GetTargetPlatformVersion(arg1, arg2);
+                                return true;
+                            }
+                        }
+                        else if (string.Equals(_methodMethodName, nameof(IntrinsicFunctions.AreFeaturesEnabled), StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (TryGetArg(args, out string arg0))
+                            {
+                                returnVal = IntrinsicFunctions.AreFeaturesEnabled(arg0);
                                 return true;
                             }
                         }
