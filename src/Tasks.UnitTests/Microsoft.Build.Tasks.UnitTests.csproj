@@ -13,7 +13,6 @@
 
   <ItemGroup>
     <PackageReference Include="System.Security.Principal.Windows" />
-    <PackageReference Include="System.Xml.XPath" />
     <PackageReference Include="Shouldly" />
 
     <ProjectReference Include="..\Build\Microsoft.Build.csproj" />
