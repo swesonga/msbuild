@@ -13,6 +13,7 @@
     <PackageReference Update="Microsoft.Build.NuGetSdkResolver" Version="$(NuGetBuildTasksVersion)" />
     <PackageReference Update="Microsoft.CodeAnalysis.Build.Tasks" Version="3.0.0-beta1-61516-01" />
     <PackageReference Update="Microsoft.DotNet.BuildTools.GenAPI" Version="2.1.0-prerelease-02404-02" />
+    <PackageReference Update="Microsoft.DotNet.PlatformAbstractions" Version="2.1.0" />
     <PackageReference Update="Microsoft.Extensions.DependencyModel" Version="5.0.0" />
     <PackageReference Update="Microsoft.Net.Compilers.Toolset" Version="$(MicrosoftNetCompilersToolsetVersion)" />
     <PackageReference Update="Microsoft.VisualStudio.SDK.EmbedInteropTypes" Version="15.0.36" />
@@ -28,10 +29,10 @@
     <PackageReference Update="System.Collections.Immutable" Version="5.0.0" />
     <PackageReference Update="System.IO.Compression" Version="4.3.0" />
     <PackageReference Update="System.IO.FileSystem.Primitives" Version="4.3.0" />
-    <PackageReference Update="System.Linq.Parallel" Version="4.0.1" />
+    <PackageReference Update="System.Linq.Parallel" Version="4.3.0" />
     <PackageReference Update="System.Memory" Version="4.5.4" />
     <PackageReference Update="System.Reflection.Metadata" Version="5.0.0" />
-    <PackageReference Update="System.Reflection.TypeExtensions" Version="4.1.0" />
+    <PackageReference Update="System.Reflection.TypeExtensions" Version="4.7.0" />
     <PackageReference Update="System.Resources.Extensions" Version="5.0.0" />
     <PackageReference Update="System.Runtime.InteropServices" Version="4.3.0" />
     <PackageReference Update="System.Runtime.InteropServices.RuntimeInformation" Version="4.3.0" />
