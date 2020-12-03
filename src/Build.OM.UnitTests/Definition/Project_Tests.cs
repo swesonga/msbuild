@@ -4230,6 +4230,82 @@ namespace Microsoft.Build.UnitTests.OM.Definition
             project.Targets.Keys.ShouldBe(new[] { "t" });
         }
 
+        [Fact]
+        public void Project_Serialization_Roundtrip()
+        {
+            string importContent = ObjectModelHelpers.CleanupFileContents(@"
+                    <Project xmlns='msbuildnamespace'>
+                        <PropertyGroup>
+                            <p2>v3</p2>
+                        </PropertyGroup>
+                        <ItemGroup>
+                            <i Include='i4'/>
+                        </ItemGroup>
+                        <Target Name='t2'>
+                            <task/>
+                        </Target>
+                    </Project>");
+
+            string importPath = ObjectModelHelpers.CreateFileInTempProjectDirectory("import.targets", importContent);
+
+            string projectFileContent = ObjectModelHelpers.CleanupFileContents(@"
+                    <Project xmlns='msbuildnamespace'>
+                        <PropertyGroup Condition=""'$(Configuration)'=='Foo'"">
+                            <p>v1</p>
+                        </PropertyGroup>
+                        <PropertyGroup Condition=""'$(Configuration)'!='Foo'"">
+                            <p>v2</p>
+                        </PropertyGroup>
+                        <PropertyGroup>
+                            <p2>X$(p)</p2>
+                        </PropertyGroup>
+                        <ItemGroup>
+                            <i Condition=""'$(Configuration)'=='Foo'"" Include='i0'/>
+                            <i Include='i1'/>
+                            <i Include='$(p)X;i3'/>
+                        </ItemGroup>
+                        <Target Name='t'>
+                            <task/>
+                        </Target>
+                        <Import Project='{0}'/>
+                    </Project>");
+
+            projectFileContent = string.Format(projectFileContent, importPath);
+
+            ProjectRootElement xml = ProjectRootElement.Create(XmlReader.Create(new StringReader(projectFileContent)));
+            Project originalProject = new Project(xml);
+
+            using MemoryStream stream = new MemoryStream();
+            originalProject.Serialize(stream);
+            stream.Seek(0, SeekOrigin.Begin);
+
+            var project = new Project(stream);
+
+            Assert.Equal("v3", project.GetPropertyValue("p2"));
+
+            List<ProjectItem> items = Helpers.MakeList(project.GetItems("i"));
+            Assert.Equal(4, items.Count);
+            Assert.Equal("i1", items[0].EvaluatedInclude);
+            Assert.Equal("v2X", items[1].EvaluatedInclude);
+            Assert.Equal("i3", items[2].EvaluatedInclude);
+            Assert.Equal("i4", items[3].EvaluatedInclude);
+
+            IList<ResolvedImport> imports = project.Imports;
+            Assert.Single(imports);
+            Assert.True(object.ReferenceEquals(imports.First().ImportingElement, xml.Imports.ElementAt(0)));
+
+            // We can take advantage of the fact that we will get the same ProjectRootElement from the cache if we try to
+            // open it with a path; get that and then compare it to what project.Imports gave us.
+            Assert.True(object.ReferenceEquals(imports.First().ImportedProject, ProjectRootElement.Open(importPath)));
+
+            // Test the logical project iterator
+            List<ProjectElement> logicalElements = new List<ProjectElement>(project.GetLogicalProject());
+
+            Assert.Equal(18, logicalElements.Count);
+
+            ObjectModelHelpers.DeleteTempProjectDirectory();
+        }
+
         private static void AssertGlobResult(GlobResultList expected, string project)
         {
             var globs = ObjectModelHelpers.CreateInMemoryProject(project).GetAllGlobs();

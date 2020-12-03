@@ -389,6 +389,16 @@ namespace Microsoft.Build.Evaluation
         }
 
         /// <summary>
+        /// Constructor for deserialization (experimental).
+        /// </summary>
+        /// <param name="stream">The stream to deserialize the object from.</param>
+        public Project(Stream stream)
+        {
+            ITranslator translator = BinaryTranslator.GetReadTranslator(stream, null);
+            ((ITranslatable)this).Translate(translator);
+        }
+
+        /// <summary>
         /// Construct over an existing project file, evaluating with the specified global properties and
         /// using the tools version provided, either or both of which may be null.
         /// Project is added to the global project collection.
@@ -813,6 +823,16 @@ namespace Microsoft.Build.Evaluation
         /// The logging service used for evaluation errors.
         /// </summary>
         internal ILoggingService LoggingService => ProjectCollection.LoggingService;
+
+        /// <summary>
+        /// Serializes this object to a stream (experimental).
+        /// </summary>
+        /// <param name="stream">The stream to serialize the object to.</param>
+        public void Serialize(Stream stream)
+        {
+            ITranslator translator = BinaryTranslator.GetWriteTranslator(stream);
+            ((ITranslatable)this).Translate(translator);
+        }
 
         /// <summary>
         /// Returns the evaluated, escaped value of the provided item's include.

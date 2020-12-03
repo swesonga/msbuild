@@ -547,6 +547,7 @@ namespace Microsoft.Build.Evaluation
         public Project(Microsoft.Build.Evaluation.ProjectCollection projectCollection, Microsoft.Build.Evaluation.NewProjectFileOptions newProjectFileOptions) { }
         public Project(System.Collections.Generic.IDictionary<string, string> globalProperties, string toolsVersion, Microsoft.Build.Evaluation.ProjectCollection projectCollection) { }
         public Project(System.Collections.Generic.IDictionary<string, string> globalProperties, string toolsVersion, Microsoft.Build.Evaluation.ProjectCollection projectCollection, Microsoft.Build.Evaluation.NewProjectFileOptions newProjectFileOptions) { }
+        public Project(System.IO.Stream stream) { }
         public Project(string projectFile) { }
         public Project(string projectFile, System.Collections.Generic.IDictionary<string, string> globalProperties, string toolsVersion) { }
         public Project(string projectFile, System.Collections.Generic.IDictionary<string, string> globalProperties, string toolsVersion, Microsoft.Build.Evaluation.ProjectCollection projectCollection) { }
@@ -641,6 +642,7 @@ namespace Microsoft.Build.Evaluation
         public void Save(string path, System.Text.Encoding encoding) { }
         public void Save(System.Text.Encoding encoding) { }
         public void SaveLogicalProject(System.IO.TextWriter writer) { }
+        public void Serialize(System.IO.Stream stream) { }
         public bool SetGlobalProperty(string name, string escapedValue) { throw null; }
         public Microsoft.Build.Evaluation.ProjectProperty SetProperty(string name, string unevaluatedValue) { throw null; }
     }
