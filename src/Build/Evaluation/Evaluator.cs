@@ -624,7 +624,7 @@ namespace Microsoft.Build.Evaluation
                 }
 
                 _data.InitialTargets = initialTargets;
-                MSBuildEventSource.Log.EvaluatePass1Stop(projectFile);
+                MSBuildEventSource.Log.EvaluatePass1Stop(projectFile, _projectRootElement.Properties.Count, _projectRootElement.Imports.Count);
                 // Pass2: evaluate item definitions
                 // Don't box via IEnumerator and foreach; cache count so not to evaluate via interface each iteration
                 MSBuildEventSource.Log.EvaluatePass2Start(projectFile);
@@ -638,7 +638,7 @@ namespace Microsoft.Build.Evaluation
                         }
                     }
                 }
-                MSBuildEventSource.Log.EvaluatePass2Stop(projectFile);
+                MSBuildEventSource.Log.EvaluatePass2Stop(projectFile, _itemDefinitionGroupElements.Count);
                 LazyItemEvaluator<P, I, M, D> lazyEvaluator = null;
                 using (_evaluationProfiler.TrackPass(EvaluationPass.Items))
                 {
@@ -681,7 +681,7 @@ namespace Microsoft.Build.Evaluation
                     lazyEvaluator = null;
                 }
 
-                MSBuildEventSource.Log.EvaluatePass3Stop(projectFile);
+                MSBuildEventSource.Log.EvaluatePass3Stop(projectFile, _itemGroupElements.Count);
 
                 // Pass4: evaluate using-tasks
                 MSBuildEventSource.Log.EvaluatePass4Start(projectFile);
@@ -711,7 +711,7 @@ namespace Microsoft.Build.Evaluation
                 Dictionary<string, List<TargetSpecification>> targetsWhichRunAfterByTarget = new Dictionary<string, List<TargetSpecification>>(StringComparer.OrdinalIgnoreCase);
                 LinkedList<ProjectTargetElement> activeTargetsByEvaluationOrder = new LinkedList<ProjectTargetElement>();
                 Dictionary<string, LinkedListNode<ProjectTargetElement>> activeTargets = new Dictionary<string, LinkedListNode<ProjectTargetElement>>(StringComparer.OrdinalIgnoreCase);
-                MSBuildEventSource.Log.EvaluatePass4Stop(projectFile);
+                MSBuildEventSource.Log.EvaluatePass4Stop(projectFile, _usingTaskElements.Count);
 
                 using (_evaluationProfiler.TrackPass(EvaluationPass.Targets))
                 {
@@ -764,7 +764,7 @@ namespace Microsoft.Build.Evaluation
                     }
 
                     _data.FinishEvaluation();
-                    MSBuildEventSource.Log.EvaluatePass5Stop(projectFile);
+                    MSBuildEventSource.Log.EvaluatePass5Stop(projectFile, targetElementsCount);
                 }
             }
 
@@ -1052,18 +1052,15 @@ namespace Microsoft.Build.Evaluation
 
         private void ValidateChangeWaveState()
         {
-            if (ChangeWaves.ConversionState == ChangeWaveConversionState.NotConvertedYet)
-            {
-                ChangeWaves.ApplyChangeWave();
-            }
+            ChangeWaves.ApplyChangeWave();
 
             switch (ChangeWaves.ConversionState)
             {
                 case ChangeWaveConversionState.InvalidFormat:
-                    _evaluationLoggingContext.LogWarning("", new BuildEventFileInfo(""), "ChangeWave_InvalidFormat", Traits.Instance.MSBuildDisableFeaturesFromVersion);
+                    _evaluationLoggingContext.LogWarning("", new BuildEventFileInfo(""), "ChangeWave_InvalidFormat", Traits.Instance.MSBuildDisableFeaturesFromVersion, $"[{String.Join(", ", ChangeWaves.AllWaves.Select(x => x.ToString()))}]");
                     break;
                 case ChangeWaveConversionState.OutOfRotation:
-                    _evaluationLoggingContext.LogWarning("", new BuildEventFileInfo(""), "ChangeWave_OutOfRotation", ChangeWaves.DisabledWave, Traits.Instance.MSBuildDisableFeaturesFromVersion);
+                    _evaluationLoggingContext.LogWarning("", new BuildEventFileInfo(""), "ChangeWave_OutOfRotation", ChangeWaves.DisabledWave, Traits.Instance.MSBuildDisableFeaturesFromVersion, $"[{String.Join(", ", ChangeWaves.AllWaves.Select(x => x.ToString()))}]");
                     break;
             }
         }
@@ -1086,7 +1083,7 @@ namespace Microsoft.Build.Evaluation
 
             ValidateChangeWaveState();
 
-            SetBuiltInProperty(ReservedPropertyNames.msbuilddisablefeaturesfromversion, ChangeWaves.DisabledWave);
+            SetBuiltInProperty(ReservedPropertyNames.msbuilddisablefeaturesfromversion, ChangeWaves.DisabledWave.ToString());
 
             // Fake OS env variables when not on Windows
             if (!NativeMethodsShared.IsWindows)

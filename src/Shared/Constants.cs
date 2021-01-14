@@ -97,6 +97,7 @@ namespace Microsoft.Build.Shared
         internal static readonly char[] ForwardSlash = { '/' };
         internal static readonly char[] ForwardSlashBackslash = { '/', '\\' };
         internal static readonly char[] WildcardChars = { '*', '?' };
+        internal static readonly string[] CharactersForExpansion = { "*", "?", "$(", "@(", "%" };
         internal static readonly char[] CommaChar = { ',' };
         internal static readonly char[] HyphenChar = { '-' };
         internal static readonly char[] DirectorySeparatorChar = { Path.DirectorySeparatorChar };
@@ -149,6 +150,7 @@ namespace Microsoft.Build.Shared
         internal const string redist = "Redist";
         internal const string resolvedFrom = "ResolvedFrom";
         internal const string destinationSubDirectory = "DestinationSubDirectory";
+        internal const string destinationSubPath = "DestinationSubPath";
         internal const string specificVersion = "SpecificVersion";
         internal const string link = "Link";
         internal const string subType = "SubType";

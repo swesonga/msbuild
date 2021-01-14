@@ -693,8 +693,6 @@ namespace Microsoft.Build.Execution
             BuildSubmission submission = PendBuildRequest(requestData);
             BuildResult result = submission.Execute();
 
-            SetOverallResultIfWarningsAsErrors(result);
-
             return result;
         }
 
@@ -2084,8 +2082,6 @@ namespace Microsoft.Build.Execution
                 // If the submission has completed or never started, remove it.
                 if (submission.IsCompleted || submission.BuildRequest == null)
                 {
-                    SetOverallResultIfWarningsAsErrors(submission.BuildResult);
-
                     _buildSubmissions.Remove(submission.SubmissionId);
 
                     // Clear all cached SDKs for the submission
@@ -2184,20 +2180,13 @@ namespace Microsoft.Build.Execution
                             continue;
                         }
 
-                        submission.CompleteLogging(false);
-
                         // Attach the exception to this submission if it does not already have an exception associated with it
-                        if (submission.BuildResult?.Exception == null)
+                        if (!submission.IsCompleted && submission.BuildResult != null && submission.BuildResult.Exception == null)
                         {
-                            if (submission.BuildResult == null)
-                            {
-                                submission.BuildResult = new BuildResult(submission.BuildRequest, e);
-                            }
-                            else
-                            {
-                                submission.BuildResult.Exception = _threadException.SourceException;
-                            }
+                            submission.BuildResult.Exception = e;
                         }
+                        submission.CompleteLogging(waitForLoggingThread: false);
+                        submission.CompleteResults(new BuildResult(submission.BuildRequest, e));
 
                         CheckSubmissionCompletenessAndRemove(submission);
                     }
@@ -2211,17 +2200,11 @@ namespace Microsoft.Build.Execution
                         }
 
                         // Attach the exception to this submission if it does not already have an exception associated with it
-                        if (submission.BuildResult?.Exception == null)
+                        if (!submission.IsCompleted && submission.BuildResult != null && submission.BuildResult.Exception == null)
                         {
-                            if (submission.BuildResult == null)
-                            {
-                                submission.BuildResult = new GraphBuildResult(submission.SubmissionId, e);
-                            }
-                            else
-                            {
-                                submission.BuildResult.Exception = _threadException.SourceException;
-                            }
+                            submission.BuildResult.Exception = e;
                         }
+                        submission.CompleteResults(submission.BuildResult ?? new GraphBuildResult(submission.SubmissionId, e));
 
                         CheckSubmissionCompletenessAndRemove(submission);
                     }
@@ -2356,25 +2339,6 @@ namespace Microsoft.Build.Execution
             }
 
             return castPacket;
-        }
-
-        /// <summary>
-        /// Sets the overall result of a build only if the user had specified /warnaserror and there were any errors.
-        /// This ensures the old behavior stays intact where builds could succeed even if a failure was logged.
-        /// </summary>
-        private void SetOverallResultIfWarningsAsErrors(BuildResult result)
-        {
-            if (result?.OverallResult == BuildResultCode.Success)
-            {
-                ILoggingService loggingService = ((IBuildComponentHost)this).LoggingService;
-
-                if (loggingService.HasBuildSubmissionLoggedErrors(result.SubmissionId))
-                {
-                    result.SetOverallResult(overallResult: false);
-
-                    _overallBuildSuccess = false;
-                }
-            }
         }
 
         /// <summary>
