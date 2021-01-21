@@ -77,7 +77,7 @@ stages:
         targetType: 'inline'
         script: |
           Write-Host "Overwriting BUILD_REPOSITORY_URI."
-          Write-Host "##vso[task.setvariable variable=BUILD_REPOSITORY_URI;]https://dnceng@dev.azure.com/dnceng/internal/_git/dotnet-msbuild"
+          Write-Host "##vso[task.setvariable variable=BUILD_REPOSITORY_URI;]https://devdiv@dev.azure.com/devdiv/DevDiv/_git/DotNet-msbuild"
           Write-Host "##vso[task.setvariable variable=BUILD_REPOSITORY_NAME;]dotnet-msbuild"
 
     # Required by MicroBuildBuildVSBootstrapper
