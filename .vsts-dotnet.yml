@@ -78,6 +78,7 @@ stages:
         script: |
           Write-Host "Overwriting BUILD_REPOSITORY_URI."
           Write-Host "##vso[task.setvariable variable=BUILD_REPOSITORY_URI;]https://dnceng@dev.azure.com/dnceng/internal/_git/dotnet-msbuild"
+          Write-Host "##vso[task.setvariable variable=BUILD_REPOSITORY_NAME;]dotnet-msbuild"
 
     # Required by MicroBuildBuildVSBootstrapper
     - task: ms-vseng.MicroBuildTasks.32f78468-e895-4f47-962c-58a699361df8.MicroBuildSwixPlugin@1
