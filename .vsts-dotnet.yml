@@ -20,6 +20,7 @@ variables:
     value: .NETCore
   - name: _DotNetValidationArtifactsCategory
     value: .NETCoreValidation
+
   - task: PowerShell@2
     inputs: # This is a temporary fix to get msbuild onboarded with v3 publishing. This will be resolved soon ->https://github.com/dotnet/arcade/issues/6827
     targetType: 'inline'
