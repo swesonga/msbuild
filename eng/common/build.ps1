@@ -30,9 +30,6 @@ Param(
   [Parameter(ValueFromRemainingArguments=$true)][String[]]$properties
 )
 
-# This is a temporary fix to get msbuild onboarded with v3 publishing. This will be resolved soon ->https://github.com/dotnet/arcade/issues/6827
-[Environment]::SetEnvironmentVariable("BUILD_REPOSITORY_URI", "https://dnceng@dev.azure.com/dnceng/internal/_git/dotnet-msbuild")
-
 # Unset 'Platform' environment variable to avoid unwanted collision in InstallDotNetCore.targets file
 # some computer has this env var defined (e.g. Some HP)
 if($env:Platform) {
