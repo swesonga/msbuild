@@ -72,14 +72,6 @@ stages:
         skipRunOptimize: true
       displayName: 'Install OptProf Plugin'
 
-    - task: PowerShell@2
-      inputs: # This is a temporary fix to get msbuild onboarded with v3 publishing. This will be resolved soon ->https://github.com/dotnet/arcade/issues/6827
-        targetType: 'inline'
-        script: |
-          Write-Host "Overwriting BUILD_REPOSITORY_URI."
-          Write-Host "##vso[task.setvariable variable=BUILD_REPOSITORY_URI;]https://devdiv@dev.azure.com/devdiv/DevDiv/_git/DotNet-msbuild"
-          Write-Host "##vso[task.setvariable variable=BUILD_REPOSITORY_NAME;]dotnet-msbuild"
-
     # Required by MicroBuildBuildVSBootstrapper
     - task: ms-vseng.MicroBuildTasks.32f78468-e895-4f47-962c-58a699361df8.MicroBuildSwixPlugin@1
       inputs:
