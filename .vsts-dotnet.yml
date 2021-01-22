@@ -82,7 +82,7 @@ stages:
         targetType: 'inline'
         script: |
           Write-Host "Overwriting BUILD_REPOSITORY_URI."
-          Write-Host "##vso[task.setvariable variable=BUILD_REPOSITORY_URI;]https://dnceng@dev.azure.com/dnceng/internal/_git/dotnet-msbuild"
+          Write-Host "##vso[task.setvariable variable=BUILD_REPOSITORY_URI;isOutput=true]https://dnceng@dev.azure.com/dnceng/internal/_git/dotnet-msbuild"
 
     - script: eng/CIBuild.cmd
                 -configuration $(BuildConfiguration)
