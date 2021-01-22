@@ -61,8 +61,8 @@ jobs:
       inputs: # This is a temporary fix to get msbuild onboarded with v3 publishing. This will be resolved soon ->https://github.com/dotnet/arcade/issues/6827
         targetType: 'inline'
         script: |
-          Write-Host "Overwriting BUILD_REPOSITORY_URI."
-          Write-Host "##vso[task.setvariable variable=BUILD_REPOSITORY_URI;]https://dnceng@dev.azure.com/dnceng/internal/_git/dotnet-msbuild"
+          Write-Host "Overwriting Build.Repository.Uri."
+          Write-Host "##vso[task.setvariable variable=Build.Repository.Uri;]https://dnceng@dev.azure.com/dnceng/internal/_git/dotnet-msbuild"
 
     - task: PowerShell@2
       displayName: Publish Build Assets
