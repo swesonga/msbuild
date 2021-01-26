@@ -26,6 +26,7 @@ Param(
   [switch] $ci,
   [switch] $prepareMachine,
   [switch] $help,
+  [string] $optProfDropName = "OptimizationData/dotnet/msbuild/master/20210119.2/935213/1",
 
   # official build settings
   [string]$officialBuildId = "",
@@ -137,6 +138,7 @@ function Build-Repo() {
     /p:Publish=$publish `
     /p:ContinuousIntegrationBuild=$ci `
     /p:OfficialBuildId=$officialBuildId `
+    /p:VisualStudioIbcDrop=$optProfDropName `
     $suppressPartialNgenOptimization `
     @properties
 }
