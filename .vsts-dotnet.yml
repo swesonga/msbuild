@@ -70,6 +70,9 @@ stages:
     - task: MicroBuildOptProfPlugin@4
       inputs:
         skipRunOptimize: true
+        # Example Format: OptimizationData/dotnet/msbuild/master/20210119.2/935213/1
+        # Point of Contact: vsengperf
+        OptimizationInputsDropName: '$(OptProfDropName)'
       displayName: 'Install OptProf Plugin'
 
     # Required by MicroBuildBuildVSBootstrapper
