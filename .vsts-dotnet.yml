@@ -153,7 +153,7 @@ stages:
     - task: PublishBuildArtifacts@1
       displayName: 'Publish Artifact: perf logs'
       inputs:
-        PathtoPublish: 'artifacts\log\$(BuildConfiguration)\perf'
+        PathtoPublish: '$(Build.StagingDirectory)\artifacts\log\$(BuildConfiguration)\perf'
         ArtifactName: PerfLogs
       condition: succeeded()
 
