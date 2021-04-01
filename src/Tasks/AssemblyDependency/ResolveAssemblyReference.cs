@@ -2006,19 +2006,21 @@ namespace Microsoft.Build.Tasks
         {
             bool success = true;
 
-            if (_concurrencyExecutionContext is object)
-            {
-                ApplyExecutionContextToInputs();
-            }
-            else
-            {
-                _concurrencyExecutionContext = new TaskExecutionContext();
-            }
-
             MSBuildEventSource.Log.RarOverallStart();
             {
                 try
                 {
+                    // test absolutization of inputs. TODO: remove.
+                    _concurrencyExecutionContext = new TaskExecutionContext(Directory.GetCurrentDirectory(), null, null, null);
+
+                    if (_concurrencyExecutionContext is object)
+                    {
+                        AbsolutizePathsInInputs();
+                    }
+                    else
+                    {
+                        _concurrencyExecutionContext = new TaskExecutionContext();
+                    }
 
                     FrameworkNameVersioning frameworkMoniker = null;
                     if (!String.IsNullOrEmpty(_targetedFrameworkMoniker))
@@ -3080,17 +3082,8 @@ namespace Microsoft.Build.Tasks
         {
             _concurrencyExecutionContext = executionContext;
         }
-
-        void AddCurrentDirectoryToItemSpecProperty(ITaskItem[] array)
-        {
-            for (int i = 0; i < array.Length; i++)
-            {
-                array[i].ItemSpec = String.IsNullOrEmpty(array[i].ItemSpec) ? array[i].ItemSpec : Path.Combine(_concurrencyExecutionContext.StartupDirectory, array[i].ItemSpec);
-            }
-        }
-
         
-        void ApplyExecutionContextToInputs()
+        void AbsolutizePathsInInputs()
         {
 
             for (int i = 0; i < _candidateAssemblyFiles.Length; i++)
