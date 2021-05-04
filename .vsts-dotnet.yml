@@ -14,7 +14,7 @@ variables:
   - name: OptProfDrop
     value: $(OptProfDropName)
   - name: SourceBranch
-      value: $(IbcSourceBranchName)
+    value: $(IbcSourceBranchName)
   # If not on main or a vs* branch, use main's optprof data.
   - ${{ if and(ne(variables['Build.SourceBranch'], 'refs/heads/main'), not(startsWith(variables['Build.SourceBranch'], 'refs/heads/vs'))) }}:
     - name: SourceBranch
