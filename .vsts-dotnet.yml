@@ -13,7 +13,7 @@ trigger:
 variables:
   - name: SourceBranch
     value: $(IbcSourceBranchName)
-  - ${{ if startsWith(variables['Build.SourceBranch'], 'refs/heads/exp/') }}:
+  - ${{ if ne(variables['Build.SourceBranch'], 'refs/heads/main') }}:
     - name: SourceBranch
       value: main
   - name: _DotNetArtifactsCategory
