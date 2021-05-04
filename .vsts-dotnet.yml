@@ -15,9 +15,13 @@ variables:
     value: $(OptProfDropName)
   - name: SourceBranch
       value: $(IbcSourceBranchName)
+  # If not on main or a vs* branch, use main's optprof data.
   - ${{ if and(ne(variables['Build.SourceBranch'], 'refs/heads/main'), not(startsWith(variables['Build.SourceBranch'], 'refs/heads/vs'))) }}:
+    - name: SourceBranch
       value: main
+  # if OptProfDropName is set when a pipeline is kicked off, unset SourceBranch
   - ${{ if ne(variables['Build.OptProfDrop'], '') }}:
+    - name: SourceBranch
       value: ''
   - name: _DotNetArtifactsCategory
     value: .NETCore
