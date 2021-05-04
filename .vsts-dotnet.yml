@@ -22,7 +22,7 @@ variables:
   # if OptProfDropName is set when a pipeline is kicked off, unset SourceBranch
   - ${{ if ne(variables['Build.OptProfDrop'], '') }}:
     - name: SourceBranch
-      value: ''
+      value: _temp
   - name: _DotNetArtifactsCategory
     value: .NETCore
   - name: _DotNetValidationArtifactsCategory
