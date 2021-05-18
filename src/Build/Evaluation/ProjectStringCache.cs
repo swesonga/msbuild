@@ -17,6 +17,12 @@ namespace Microsoft.Build.Construction
     [DebuggerDisplay("#Strings={Count} #Documents={_documents.Count}")]
     internal class ProjectStringCache
     {
+        private class DocumentRecord
+        {
+            public HashSet<StringCacheEntry> Strings;
+            public string StackTrace;
+        }
+
         /// <summary>
         /// Start off with a large size as there are very many strings in common scenarios and resizing is expensive.
         /// Note that there is a single instance of this cache for the lifetime of the process (albeit cleared out on XML unload)
@@ -32,7 +38,7 @@ namespace Microsoft.Build.Construction
         /// <summary>
         /// Store all the strings a document is using, so their ref count can be decremented.
         /// </summary>
-        private Dictionary<XmlDocument, HashSet<StringCacheEntry>> _documents = new Dictionary<XmlDocument, HashSet<StringCacheEntry>>();
+        private Dictionary<XmlDocument, DocumentRecord> _documents = new Dictionary<XmlDocument, DocumentRecord>();
 
         /// <summary>
         /// Locking object for this shared cache
@@ -87,7 +93,8 @@ namespace Microsoft.Build.Construction
                 HashSet<StringCacheEntry> entries;
 
                 bool seenString = _strings.TryGetValue(key, out entry);
-                bool seenDocument = _documents.TryGetValue(document, out entries);
+                bool seenDocument = _documents.TryGetValue(document, out var documentRecord);
+                entries = documentRecord?.Strings;
 
                 if (!seenString)
                 {
@@ -98,7 +105,11 @@ namespace Microsoft.Build.Construction
                 if (!seenDocument)
                 {
                     entries = new HashSet<StringCacheEntry>();
-                    _documents.Add(document, entries);
+                    _documents.Add(document, new DocumentRecord()
+                    {
+                        Strings = entries,
+                        StackTrace = new StackTrace().ToString()
+                    });
                 }
 
                 bool seenStringInThisDocument = seenString && seenDocument && entries.Contains(entry);
@@ -159,8 +170,9 @@ namespace Microsoft.Build.Construction
                 VerifyState();
 
                 HashSet<StringCacheEntry> entries;
-                if (_documents.TryGetValue(document, out entries))
+                if (_documents.TryGetValue(document, out var documentRecord))
                 {
+                    entries = documentRecord.Strings;
                     foreach (var entry in entries)
                     {
                         string str = entry.CachedString;
@@ -187,9 +199,9 @@ namespace Microsoft.Build.Construction
         private void VerifyState()
         {
             HashSet<StringCacheEntry> uniqueEntries = new HashSet<StringCacheEntry>();
-            foreach (var entries in _documents.Values)
+            foreach (var documentRecord in _documents.Values)
             {
-                foreach (var entry in entries)
+                foreach (var entry in documentRecord.Strings)
                 {
                     uniqueEntries.Add(entry);
                     ErrorUtilities.VerifyThrow(entry.RefCount > 0, "extra deref");
