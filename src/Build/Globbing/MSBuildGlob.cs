@@ -126,9 +126,12 @@ namespace Microsoft.Build.Globbing
                 normalizedInput,
                 _state.Value.Regex,
                 out bool isMatch,
-                out string fixedDirectoryPart,
                 out string wildcardDirectoryPart,
                 out string filenamePart);
+
+            // We don't capture the fixed directory part in the regex but we can infer it from the other two.
+            int fixedDirectoryPartLength = normalizedInput.Length - wildcardDirectoryPart.Length - filenamePart.Length;
+            string fixedDirectoryPart = normalizedInput.Substring(0, fixedDirectoryPartLength);
 
             return new MatchInfoResult(isMatch, fixedDirectoryPart, wildcardDirectoryPart, filenamePart);
         }
@@ -202,8 +205,14 @@ namespace Microsoft.Build.Globbing
 
                     if (regex == null)
                     {
+                        RegexOptions regexOptions = FileMatcher.DefaultRegexOptions;
+#if RUNTIME_TYPE_NETCORE
                         // compile the regex since it's expected to be used multiple times
-                        Regex newRegex = new Regex(matchFileExpression, FileMatcher.DefaultRegexOptions | RegexOptions.Compiled);
+                        // For the kind of regexes used here, compilation on .NET Framework tends to be expensive and not worth the small
+                        // run-time boost so it's enabled only on .NET Core.
+                        regexOptions |= RegexOptions.Compiled;
+#endif
+                        Regex newRegex = new Regex(matchFileExpression, regexOptions);
                         lock (s_regexCache)
                         {
                             if (!s_regexCache.TryGetValue(matchFileExpression, out regex))
