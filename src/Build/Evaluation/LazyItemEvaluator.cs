@@ -309,6 +309,7 @@ namespace Microsoft.Build.Evaluation
                     {
                         if (_dictionaryBuilder == null)
                         {
+                            _dictionaryBuilder = ImmutableDictionary.CreateBuilder<string, IList<I>>(StringComparer.OrdinalIgnoreCase);
                             foreach (ItemData item in _listBuilder)
                             {
                                 AddToDictionary(item.Item);
