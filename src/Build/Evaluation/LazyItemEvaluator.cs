@@ -152,7 +152,7 @@ namespace Microsoft.Build.Evaluation
         private class MemoizedOperation : IItemOperation
         {
             public LazyItemOperation Operation { get; }
-            private Dictionary<ISet<string>, ImmutableList<ItemData>> _cache;
+            private Dictionary<ISet<string>, OrderedItemDataCollection> _cache;
 
             private bool _isReferenced;
 #if DEBUG
@@ -164,7 +164,7 @@ namespace Microsoft.Build.Evaluation
                 Operation = operation;
             }
 
-            public void Apply(ImmutableList<ItemData>.Builder listBuilder, ImmutableHashSet<string> globsToIgnore)
+            public void Apply(OrderedItemDataCollection.Builder listBuilder, ImmutableHashSet<string> globsToIgnore)
             {
 #if DEBUG
                 CheckInvariant();
@@ -200,7 +200,7 @@ namespace Microsoft.Build.Evaluation
             }
 #endif
 
-            public bool TryGetFromCache(ISet<string> globsToIgnore, out ImmutableList<ItemData> items)
+            public bool TryGetFromCache(ISet<string> globsToIgnore, out OrderedItemDataCollection items)
             {
                 if (_cache != null)
                 {
@@ -219,14 +219,141 @@ namespace Microsoft.Build.Evaluation
                 _isReferenced = true;
             }
 
-            private void AddItemsToCache(ImmutableHashSet<string> globsToIgnore, ImmutableList<ItemData> items)
+            private void AddItemsToCache(ImmutableHashSet<string> globsToIgnore, OrderedItemDataCollection items)
             {
                 if (_cache == null)
                 {
-                    _cache = new Dictionary<ISet<string>, ImmutableList<ItemData>>();
+                    _cache = new Dictionary<ISet<string>, OrderedItemDataCollection>();
                 }
 
                 _cache[globsToIgnore] = items;
+            }
+        }
+
+        internal class OrderedItemDataCollection
+        {
+            internal class Builder : IEnumerable<ItemData>
+            {
+                private ImmutableList<ItemData>.Builder _listBuilder;
+                private ImmutableDictionary<string, IList<I>>.Builder _dictionaryBuilder;
+
+                public Builder(ImmutableList<ItemData>.Builder listBuilder, ImmutableDictionary<string, IList<I>>.Builder dictionaryBuilder)
+                {
+                    _listBuilder = listBuilder;
+                    _dictionaryBuilder = dictionaryBuilder;
+                }
+
+                #region IEnumerable implementation
+
+                public IEnumerator<ItemData> GetEnumerator() => _listBuilder.GetEnumerator();
+
+                System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => _listBuilder.GetEnumerator();
+
+                #endregion
+
+                public int Count => _listBuilder.Count;
+
+                public ItemData this[int index]
+                {
+                    get { return _listBuilder[index]; }
+                    set { _listBuilder[index] = value; }
+                }
+
+                public void Add(ItemData data)
+                {
+                    _listBuilder.Add(data);
+                    AddToDictionary(data.Item);
+                }
+
+                public void Clear()
+                {
+                    _listBuilder.Clear();
+                    _dictionaryBuilder?.Clear();
+                }
+
+                public void RemoveAll(Predicate<I> match)
+                {
+                    _listBuilder.RemoveAll(item => match(item.Item));
+                    if (_dictionaryBuilder != null)
+                    {
+                        List<string> toRemove = new List<string>();
+                        foreach (var kvp in _dictionaryBuilder)
+                        {
+                            for (int i = 0; i < kvp.Value.Count; i++)
+                            {
+                                if (match(kvp.Value[i]))
+                                {
+                                    if (kvp.Value.Count == 1)
+                                    {
+                                        toRemove.Add(kvp.Key);
+                                        break;
+                                    }
+                                    else
+                                    {
+                                        kvp.Value.RemoveAt(i);
+                                        i--;
+                                    }
+                                }
+                            }
+                        }
+                        foreach (var key in toRemove)
+                        {
+                            _dictionaryBuilder.Remove(key);
+                        }
+                    }
+                }
+
+                public IDictionary<string, IList<I>> Dictionary
+                {
+                    get
+                    {
+                        if (_dictionaryBuilder == null)
+                        {
+                            foreach (ItemData item in _listBuilder)
+                            {
+                                AddToDictionary(item.Item);
+                            }
+                        }
+                        return _dictionaryBuilder;
+                    }
+                }
+
+                private void AddToDictionary(I item)
+                {
+                    string key = FileUtilities.NormalizePathForComparisonNoThrow(item.EvaluatedInclude, item.ProjectDirectory);
+
+                    _dictionaryBuilder ??= ImmutableDictionary.CreateBuilder<string, IList<I>>(StringComparer.OrdinalIgnoreCase);
+                    if (!_dictionaryBuilder.TryGetValue(key, out var innerList))
+                    {
+                        innerList = new List<I>();
+                        _dictionaryBuilder[key] = innerList;
+                    }
+                    innerList.Add(item);
+                }
+
+                public OrderedItemDataCollection ToImmutable()
+                {
+                    return new OrderedItemDataCollection(_listBuilder.ToImmutable(), _dictionaryBuilder?.ToImmutable());
+                }
+            }
+
+            private ImmutableList<ItemData> _list;
+            private ImmutableDictionary<string, IList<I>> _dictionary;
+
+            private OrderedItemDataCollection(ImmutableList<ItemData> list, ImmutableDictionary<string, IList<I>> dictionary)
+            {
+                _list = list;
+                _dictionary = dictionary;
+            }
+
+            public static Builder CreateBuilder()
+            {
+                return new Builder(ImmutableList.CreateBuilder<ItemData>(), null);
+            }
+
+            public Builder ToBuilder()
+            {
+                return new Builder(_list.ToBuilder(), _dictionary?.ToBuilder());
             }
         }
 
@@ -253,7 +380,7 @@ namespace Microsoft.Build.Evaluation
                 return items.ToImmutable();
             }
 
-            public ImmutableList<ItemData>.Builder GetItemData(ImmutableHashSet<string> globsToIgnore)
+            public OrderedItemDataCollection.Builder GetItemData(ImmutableHashSet<string> globsToIgnore)
             {
                 // Cache results only on the LazyItemOperations whose results are required by an external caller (via GetItems). This means:
                 //   - Callers of GetItems who have announced ahead of time that they would reference an operation (via MarkAsReferenced())
@@ -275,7 +402,7 @@ namespace Microsoft.Build.Evaluation
                 // does not mutate: one can add operations on top, but the base never changes, and (ii) the globsToIgnore passed to the tail is the concatenation between
                 // the globsToIgnore received as an arg, and the globsToIgnore produced by the head (if the head is a Remove operation)
 
-                ImmutableList<ItemData> items;
+                OrderedItemDataCollection items;
                 if (_memoizedOperation.TryGetFromCache(globsToIgnore, out items))
                 {
                     return items.ToBuilder();
@@ -299,12 +426,12 @@ namespace Microsoft.Build.Evaluation
             /// is to optimize the case in which as series of UpdateOperations, each of which affects a single ItemSpec, are applied to all
             /// items in the list, leading to a quadratic-time operation.
             /// </summary>
-            private static ImmutableList<ItemData>.Builder ComputeItems(LazyItemList lazyItemList, ImmutableHashSet<string> globsToIgnore)
+            private static OrderedItemDataCollection.Builder ComputeItems(LazyItemList lazyItemList, ImmutableHashSet<string> globsToIgnore)
             {
                 // Stack of operations up to the first one that's cached (exclusive)
                 Stack<LazyItemList> itemListStack = new Stack<LazyItemList>();
 
-                ImmutableList<ItemData>.Builder items = null;
+                OrderedItemDataCollection.Builder items = null;
 
                 // Keep a separate stack of lists of globs to ignore that only gets modified for Remove operations
                 Stack<ImmutableHashSet<string>> globsToIgnoreStack = null;
@@ -313,7 +440,7 @@ namespace Microsoft.Build.Evaluation
                 {
                     var globsToIgnoreFromFutureOperations = globsToIgnoreStack?.Peek() ?? globsToIgnore;
 
-                    ImmutableList<ItemData> itemsFromCache;
+                    OrderedItemDataCollection itemsFromCache;
                     if (currentList._memoizedOperation.TryGetFromCache(globsToIgnoreFromFutureOperations, out itemsFromCache))
                     {
                         // the base items on top of which to apply the uncached operations are the items of the first operation that is cached
@@ -341,7 +468,7 @@ namespace Microsoft.Build.Evaluation
 
                 if (items == null)
                 {
-                    items = ImmutableList.CreateBuilder<ItemData>();
+                    items = OrderedItemDataCollection.CreateBuilder();
                 }
 
                 ImmutableHashSet<string> currentGlobsToIgnore = globsToIgnoreStack == null ? globsToIgnore : globsToIgnoreStack.Peek();
@@ -419,7 +546,7 @@ namespace Microsoft.Build.Evaluation
                 return items;
             }
 
-            private static void ProcessNonWildCardItemUpdates(Dictionary<string, UpdateOperation> itemsWithNoWildcards, ImmutableList<ItemData>.Builder items)
+            private static void ProcessNonWildCardItemUpdates(Dictionary<string, UpdateOperation> itemsWithNoWildcards, OrderedItemDataCollection.Builder items)
             {
 #if DEBUG
                 ErrorUtilities.VerifyThrow(itemsWithNoWildcards.All(fragment => !MSBuildConstants.CharactersForExpansion.Any(fragment.Key.Contains)), $"{nameof(itemsWithNoWildcards)} should not contain any text fragments with wildcards.");

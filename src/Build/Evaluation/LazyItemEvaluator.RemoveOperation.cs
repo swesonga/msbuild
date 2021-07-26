@@ -3,6 +3,7 @@
 
 using Microsoft.Build.Construction;
 using Microsoft.Build.Shared;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 
@@ -35,10 +36,10 @@ namespace Microsoft.Build.Evaluation
             /// Apply the Remove operation.
             /// </summary>
             /// <remarks>
-            /// This operation is mostly implemented in terms of the default <see cref="LazyItemOperation.ApplyImpl(ImmutableList{ItemData}.Builder, ImmutableHashSet{string})"/>.
+            /// This operation is mostly implemented in terms of the default <see cref="LazyItemOperation.ApplyImpl(OrderedItemDataCollection.Builder, ImmutableHashSet{string})"/>.
             /// This override exists to apply the removing-everything short-circuit.
             /// </remarks>
-            protected override void ApplyImpl(ImmutableList<ItemData>.Builder listBuilder, ImmutableHashSet<string> globsToIgnore)
+            protected override void ApplyImpl(OrderedItemDataCollection.Builder listBuilder, ImmutableHashSet<string> globsToIgnore)
             {
                 if (_matchOnMetadata.IsEmpty && ItemspecContainsASingleBareItemReference(_itemSpec, _itemElement.ItemType) && _conditionResult)
                 {
@@ -52,13 +53,25 @@ namespace Microsoft.Build.Evaluation
             }
 
             // todo Perf: do not match against the globs: https://github.com/Microsoft/msbuild/issues/2329
-            protected override ImmutableList<I> SelectItems(ImmutableList<ItemData>.Builder listBuilder, ImmutableHashSet<string> globsToIgnore)
+            protected override ImmutableList<I> SelectItems(OrderedItemDataCollection.Builder listBuilder, ImmutableHashSet<string> globsToIgnore)
             {
                 var items = ImmutableHashSet.CreateBuilder<I>();
-                foreach (ItemData item in listBuilder)
+                if (_matchOnMetadata.IsEmpty)
                 {
-                    if (_matchOnMetadata.IsEmpty ? _itemSpec.MatchesItem(item.Item) : MatchesItemOnMetadata(item.Item))
-                        items.Add(item.Item);
+                    foreach (I item in _itemSpec.GetMatchesByPathComparison(listBuilder.Dictionary))
+                    {
+                        items.Add(item);
+                    }
+                }
+                else
+                {
+                    foreach (ItemData item in listBuilder)
+                    {
+                        if (MatchesItemOnMetadata(item.Item))
+                        {
+                            items.Add(item.Item);
+                        }
+                    }
                 }
 
                 return items.ToImmutableList();
@@ -69,14 +82,14 @@ namespace Microsoft.Build.Evaluation
                 return _metadataSet.Contains(_matchOnMetadata.Select(m => item.GetMetadataValue(m)));
             }
 
-            protected override void SaveItems(ImmutableList<I> items, ImmutableList<ItemData>.Builder listBuilder)
+            protected override void SaveItems(ImmutableList<I> items, OrderedItemDataCollection.Builder listBuilder)
             {
                 if (!_conditionResult)
                 {
                     return;
                 }
 
-                listBuilder.RemoveAll(itemData => items.Contains(itemData.Item));
+                listBuilder.RemoveAll(item => items.Contains(item));
             }
 
             public ImmutableHashSet<string>.Builder GetRemovedGlobs()

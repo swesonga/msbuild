@@ -15,7 +15,7 @@ namespace Microsoft.Build.Internal
         private readonly string _unescapedFileSpec;
         private readonly string _filenamePattern;
         private readonly Regex _regex;
-        
+
         private FileSpecMatcherTester(string currentDirectory, string unescapedFileSpec, string filenamePattern, Regex regex)
         {
             Debug.Assert(!string.IsNullOrEmpty(unescapedFileSpec));
@@ -25,6 +25,11 @@ namespace Microsoft.Build.Internal
             _unescapedFileSpec = unescapedFileSpec;
             _filenamePattern = filenamePattern;
             _regex = regex;
+
+            if (_regex == null && _filenamePattern == null)
+            {
+                _unescapedFileSpec = FileUtilities.NormalizePathForComparisonNoThrow(_unescapedFileSpec, _currentDirectory);
+            }
         }
 
         public static FileSpecMatcherTester Parse(string currentDirectory, string fileSpec)
@@ -45,27 +50,33 @@ namespace Microsoft.Build.Internal
         {
             Debug.Assert(!string.IsNullOrEmpty(fileToMatch));
 
+            string normalizedFileToMatch = FileUtilities.GetFullPathNoThrow(Path.Combine(_currentDirectory, fileToMatch));
+            return IsMatchNormalized(normalizedFileToMatch);
+        }
+
+        public bool IsMatchNormalized(string normalizedFileToMatch)
+        {
+            Debug.Assert(!string.IsNullOrEmpty(normalizedFileToMatch));
+
             // We do the matching using one of three code paths, depending on the value of _filenamePattern and _regex.
             if (_regex != null)
             {
-                string normalizedFileToMatch = FileUtilities.GetFullPathNoThrow(Path.Combine(_currentDirectory, fileToMatch));
                 return _regex.IsMatch(normalizedFileToMatch);
             }
 
             if (_filenamePattern != null)
             {
                 // Check file name first as it's more likely to not match.
-                string filename = Path.GetFileName(fileToMatch);
+                string filename = Path.GetFileName(normalizedFileToMatch);
                 if (!FileMatcher.IsMatch(filename, _filenamePattern))
                 {
                     return false;
                 }
 
-                var normalizedFileToMatch = FileUtilities.GetFullPathNoThrow(Path.Combine(_currentDirectory, fileToMatch));
                 return normalizedFileToMatch.StartsWith(_currentDirectory, StringComparison.OrdinalIgnoreCase);
             }
 
-            return FileUtilities.ComparePathsNoThrow(_unescapedFileSpec, fileToMatch, _currentDirectory, alwaysIgnoreCase: true);
+            return string.Equals(_unescapedFileSpec, normalizedFileToMatch, StringComparison.OrdinalIgnoreCase);
         }
 
         // this method parses the glob and extracts the fixed directory part in order to normalize it and make it absolute

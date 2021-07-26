@@ -85,6 +85,11 @@ namespace Microsoft.Build.Evaluation
                 return ReferencedItems.Any(v => v.ItemAsValueFragment.IsMatch(itemToMatch));
             }
 
+            public override IEnumerable<string> GetReferencedItems()
+            {
+                return ReferencedItems.Select(v => v.ItemAsValueFragment.TextFragment);
+            }
+
             public override IMSBuildGlob ToMSBuildGlob()
             {
                 return MsBuildGlob;
@@ -289,6 +294,43 @@ namespace Microsoft.Build.Evaluation
             return false;
         }
 
+        public IEnumerable<T> GetMatchesByPathComparison<T>(IDictionary<string, IList<T>> dictionary)
+        {
+            foreach (var fragment in Fragments)
+            {
+                IEnumerable<string> referencedItems = fragment.GetReferencedItems();
+                if (referencedItems != null)
+                {
+                    // The fragment can enumerate its referenced items, we can do directory lookups.
+                    foreach (var spec in referencedItems)
+                    {
+                        string key = FileUtilities.NormalizePathForComparisonNoThrow(spec, fragment.ProjectDirectory);
+                        if (dictionary.TryGetValue(key, out var innerList))
+                        {
+                            foreach (T item in innerList)
+                            {
+                                yield return item;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    // The fragment cannot enumerate its referenced items. Iterate over the dictionary and test each item.
+                    foreach (var kvp in dictionary)
+                    {
+                        if (fragment.IsMatch(kvp.Key))
+                        {
+                            foreach (T item in kvp.Value)
+                            {
+                                yield return item;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         /// <summary>
         ///     Return the fragments that match against the given <paramref name="itemToMatch" />
         /// </summary>
@@ -415,6 +457,16 @@ namespace Microsoft.Build.Evaluation
             return FileMatcher.IsMatch(itemToMatch);
         }
 
+        public virtual bool IsMatchNormalized(string normalizedItemToMatch)
+        {
+            return FileMatcher.IsMatchNormalized(normalizedItemToMatch);
+        }
+
+        public virtual IEnumerable<string> GetReferencedItems()
+        {
+            yield return TextFragment;
+        }
+
         public virtual IMSBuildGlob ToMSBuildGlob()
         {
             return MsBuildGlob;
@@ -444,6 +496,12 @@ namespace Microsoft.Build.Evaluation
         public GlobFragment(string textFragment, string projectDirectory)
             : base(textFragment, projectDirectory)
         {
+        }
+
+        public override IEnumerable<string> GetReferencedItems()
+        {
+            // This fragment cannot efficiently enumerate its referenced items.
+            return null;
         }
 
         /// <summary>
