@@ -3,6 +3,7 @@
 
 using Microsoft.Build.Construction;
 using Microsoft.Build.Shared;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 
@@ -35,10 +36,10 @@ namespace Microsoft.Build.Evaluation
             /// Apply the Remove operation.
             /// </summary>
             /// <remarks>
-            /// This operation is mostly implemented in terms of the default <see cref="LazyItemOperation.ApplyImpl(ImmutableList{ItemData}.Builder, ImmutableHashSet{string})"/>.
+            /// This operation is mostly implemented in terms of the default <see cref="LazyItemOperation.ApplyImpl(OrderedItemDataCollection.Builder, ImmutableHashSet{string})"/>.
             /// This override exists to apply the removing-everything short-circuit.
             /// </remarks>
-            protected override void ApplyImpl(ImmutableList<ItemData>.Builder listBuilder, ImmutableHashSet<string> globsToIgnore)
+            protected override void ApplyImpl(OrderedItemDataCollection.Builder listBuilder, ImmutableHashSet<string> globsToIgnore)
             {
                 if (_matchOnMetadata.IsEmpty && ItemspecContainsASingleBareItemReference(_itemSpec, _itemElement.ItemType) && _conditionResult)
                 {
@@ -48,35 +49,91 @@ namespace Microsoft.Build.Evaluation
                     return;
                 }
 
-                base.ApplyImpl(listBuilder, globsToIgnore);
-            }
-
-            // todo Perf: do not match against the globs: https://github.com/Microsoft/msbuild/issues/2329
-            protected override ImmutableList<I> SelectItems(ImmutableList<ItemData>.Builder listBuilder, ImmutableHashSet<string> globsToIgnore)
-            {
-                var items = ImmutableHashSet.CreateBuilder<I>();
-                foreach (ItemData item in listBuilder)
+                // todo Perf: do not match against the globs: https://github.com/Microsoft/msbuild/issues/2329
+                HashSet<I> items = null;
+                if (_matchOnMetadata.IsEmpty)
                 {
-                    if (_matchOnMetadata.IsEmpty ? _itemSpec.MatchesItem(item.Item) : MatchesItemOnMetadata(item.Item))
-                        items.Add(item.Item);
+                    foreach (I item in RemoveMatchingItemsFromDictionary(listBuilder.Dictionary))
+                    {
+                        items ??= new HashSet<I>();
+                        items.Add(item);
+                    }
+                }
+                else
+                {
+                    foreach (ItemData item in listBuilder)
+                    {
+                        if (MatchesItemOnMetadata(item.Item))
+                        {
+                            items ??= new HashSet<I>();
+                            items.Add(item.Item);
+                        }
+                    }
                 }
 
-                return items.ToImmutableList();
+                if (items != null)
+                {
+                    listBuilder.RemoveAll(items, alreadyRemovedFromDictionary: _matchOnMetadata.IsEmpty);
+                }
+            }
+
+            /// <summary>
+            /// 
+            /// </summary>
+            /// <param name="dictionary"></param>
+            /// <returns></returns>
+            private IEnumerable<I> RemoveMatchingItemsFromDictionary(IDictionary<string, OrderedItemDataCollection.DictionaryValue> dictionary)
+            {
+                foreach (var fragment in _itemSpec.Fragments)
+                {
+                    IEnumerable<string> referencedItems = fragment.GetReferencedItems();
+                    if (referencedItems != null)
+                    {
+                        // The fragment can enumerate its referenced items, we can do dictionary lookups.
+                        foreach (var spec in referencedItems)
+                        {
+                            string key = FileUtilities.NormalizePathForComparisonNoThrow(spec, fragment.ProjectDirectory);
+                            if (dictionary.TryGetValue(key, out var innerList))
+                            {
+                                foreach (I item in innerList)
+                                {
+                                    yield return item;
+                                }
+                                dictionary.Remove(key);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // The fragment cannot enumerate its referenced items. Iterate over the dictionary and test each item.
+                        List<string> keysToRemove = null;
+                        foreach (var kvp in dictionary)
+                        {
+                            if (fragment.IsMatchNormalized(kvp.Key))
+                            {
+                                foreach (I item in kvp.Value)
+                                {
+                                    yield return item;
+                                }
+                                keysToRemove ??= new List<string>();
+                                keysToRemove.Add(kvp.Key);
+                            }
+                        }
+
+                        if (keysToRemove != null)
+                        {
+                            foreach (string key in keysToRemove)
+                            {
+                                dictionary.Remove(key);
+                            }
+                        }
+                    }
+                }
             }
 
             private bool MatchesItemOnMetadata(I item)
             {
                 return _metadataSet.Contains(_matchOnMetadata.Select(m => item.GetMetadataValue(m)));
-            }
-
-            protected override void SaveItems(ImmutableList<I> items, ImmutableList<ItemData>.Builder listBuilder)
-            {
-                if (!_conditionResult)
-                {
-                    return;
-                }
-
-                listBuilder.RemoveAll(itemData => items.Contains(itemData.Item));
             }
 
             public ImmutableHashSet<string>.Builder GetRemovedGlobs()
