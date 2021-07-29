@@ -53,6 +53,12 @@
     <Optimize Condition="'$(Optimize)' == ''">true</Optimize>
     <MonoBuild>true</MonoBuild>
   </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework' and '$(MonoBuild)' != 'true'">
+    <DefineConstants>$(DefineConstants);MSIOREDDIST</DefineConstants>
+    <MSIOREDDIST>true</MSIOREDDIST>
+  </PropertyGroup>
+
   <!-- Configuration MSBuild for portable (xcopy-install) toolsets: works on WinNT and linux/mac via Mono, isolates from machine environment:
     uses only tools installed with it, ignores Registry and GAC and Visual Studio installations to provide the same build experience on all machines -->
   <PropertyGroup Condition="'$(Configuration)' == 'MachineIndependent'">
