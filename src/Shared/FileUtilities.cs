@@ -19,9 +19,6 @@ using System.Text;
 using System.Threading;
 using Microsoft.Build.Utilities;
 using Microsoft.Build.Shared.FileSystem;
-#if MSIOREDDIST
-using FileInfo = Microsoft.IO.FileInfo;
-#endif
 
 namespace Microsoft.Build.Shared
 {
