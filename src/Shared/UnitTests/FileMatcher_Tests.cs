@@ -1241,20 +1241,6 @@ namespace Microsoft.Build.UnitTests
             ValidateIllegal("http://www.website.com");
         }
 
-        //[Fact]
-        //[PlatformSpecific(TestPlatforms.Windows)] // Nothing's too long for Unix
-        //[SkipOnTargetFramework(TargetFrameworkMonikers.Netcoreapp)]
-        //public void IllegalTooLongPath()
-        //{
-        //    string longString = new string('X', 500) + "*"; // need a wildcard to do anything
-        //    string[] result = FileMatcher.Default.GetFiles(@"c:\", longString);
-
-        //    Assert.Equal(longString, result[0]); // Does not throw
-
-        //    // Not checking that GetFileSpecMatchInfo returns the illegal-path flag,
-        //    // not certain that won't break something; this fix is merely to avoid a crash.
-        //}
-
         [Fact]
         public void SplitFileSpec()
         {
