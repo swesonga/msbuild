@@ -12,6 +12,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Build.Shared.FileSystem;
 using Xunit;
 using Xunit.Abstractions;
+using Microsoft.Build.Utilities;
 
 namespace Microsoft.Build.UnitTests
 {
@@ -1239,6 +1240,27 @@ namespace Microsoft.Build.UnitTests
             ValidateIllegal("*.cs**");
             ValidateIllegal("...\\*.cs");
             ValidateIllegal("http://www.website.com");
+        }
+
+        [Fact]
+        [PlatformSpecific(TestPlatforms.Windows)] // Nothing's too long for Unix
+        [SkipOnTargetFramework(TargetFrameworkMonikers.Netcoreapp)]
+        public void IllegalTooLongPathOptOutWave17_0()
+        {
+            using (var env = TestEnvironment.Create())
+            {
+                ChangeWaves.ResetStateForTests();
+                env.SetEnvironmentVariable("MSBUILDDISABLEFEATURESFROMVERSION", ChangeWaves.Wave17_0.ToString());
+                BuildEnvironmentHelper.ResetInstance_ForUnitTestsOnly();
+
+                string longString = new string('X', 500) + "*"; // need a wildcard to do anything
+                string[] result = FileMatcher.Default.GetFiles(@"c:\", longString);
+
+                Assert.Equal(longString, result[0]); // Does not throw
+                ChangeWaves.ResetStateForTests();
+            }
+            // Not checking that GetFileSpecMatchInfo returns the illegal-path flag,
+            // not certain that won't break something; this fix is merely to avoid a crash.
         }
 
         [Fact]
