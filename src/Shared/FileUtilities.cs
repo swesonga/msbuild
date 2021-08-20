@@ -1028,63 +1028,71 @@ namespace Microsoft.Build.Shared
         /// <returns>relative path (can be the full path)</returns>
         internal static string MakeRelative(string basePath, string path)
         {
-            ErrorUtilities.VerifyThrowArgumentNull(basePath, nameof(basePath));
-            ErrorUtilities.VerifyThrowArgumentLength(path, nameof(path));
-
-            string fullBase = Path.GetFullPath(basePath);
-            string fullPath = Path.GetFullPath(path);
-
-            string[] splitBase = fullBase.Split(MSBuildConstants.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
-            string[] splitPath = fullPath.Split(MSBuildConstants.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
-
-            ErrorUtilities.VerifyThrow(splitPath.Length > 0, "Cannot call MakeRelative on a path of only slashes.");
-
-            // On a mac, the path could start with any number of slashes and still be valid. We have to check them all.
-            int indexOfFirstNonSlashChar = 0;
-            while (path[indexOfFirstNonSlashChar] == Path.DirectorySeparatorChar)
+            try
             {
-                indexOfFirstNonSlashChar++;
-            }
-            if (path.IndexOf(splitPath[0]) != indexOfFirstNonSlashChar)
-            {
-                // path was already relative so just return it
-                return FixFilePath(path);
-            }
 
-            int index = 0;
-            while (index < splitBase.Length && index < splitPath.Length && splitBase[index].Equals(splitPath[index], PathComparison))
-            {
-                index++;
-            }
+                ErrorUtilities.VerifyThrowArgumentNull(basePath, nameof(basePath));
+                ErrorUtilities.VerifyThrowArgumentLength(path, nameof(path));
 
-            if (index == splitBase.Length && index == splitPath.Length)
-            {
-                return ".";
-            }
-            
-            // If the paths have no component in common, the only valid relative path is the full path.
-            if (index == 0)
-            {
-                return fullPath;
-            }
+                string fullBase = Path.GetFullPath(basePath);
+                string fullPath = Path.GetFullPath(path);
 
-            StringBuilder sb = StringBuilderCache.Acquire();
+                string[] splitBase = fullBase.Split(MSBuildConstants.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+                string[] splitPath = fullPath.Split(MSBuildConstants.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
 
-            for (int i = index; i < splitBase.Length; i++)
-            {
-                sb.Append("..").Append(Path.DirectorySeparatorChar);
-            }
-            for (int i = index; i < splitPath.Length; i++)
-            {
-                sb.Append(splitPath[i]).Append(Path.DirectorySeparatorChar);
-            }
+                ErrorUtilities.VerifyThrow(splitPath.Length > 0, "Cannot call MakeRelative on a path of only slashes.");
 
-            if (fullPath[fullPath.Length - 1] != Path.DirectorySeparatorChar)
-            {
-                sb.Length--;
-            }
+                // On a mac, the path could start with any number of slashes and still be valid. We have to check them all.
+                int indexOfFirstNonSlashChar = 0;
+                while (path[indexOfFirstNonSlashChar] == Path.DirectorySeparatorChar)
+                {
+                    indexOfFirstNonSlashChar++;
+                }
+                if (path.IndexOf(splitPath[0]) != indexOfFirstNonSlashChar)
+                {
+                    // path was already relative so just return it
+                    return FixFilePath(path);
+                }
 
-            return StringBuilderCache.GetStringAndRelease(sb);
+                int index = 0;
+                while (index < splitBase.Length && index < splitPath.Length && splitBase[index].Equals(splitPath[index], PathComparison))
+                {
+                    index++;
+                }
+
+                if (index == splitBase.Length && index == splitPath.Length)
+                {
+                    return ".";
+                }
+
+                // If the paths have no component in common, the only valid relative path is the full path.
+                if (index == 0)
+                {
+                    return fullPath;
+                }
+
+                StringBuilder sb = StringBuilderCache.Acquire();
+
+                for (int i = index; i < splitBase.Length; i++)
+                {
+                    sb.Append("..").Append(Path.DirectorySeparatorChar);
+                }
+                for (int i = index; i < splitPath.Length; i++)
+                {
+                    sb.Append(splitPath[i]).Append(Path.DirectorySeparatorChar);
+                }
+
+                if (fullPath[fullPath.Length - 1] != Path.DirectorySeparatorChar)
+                {
+                    sb.Length--;
+                }
+
+                return StringBuilderCache.GetStringAndRelease(sb);
+            }
+            catch (Exception e)
+            {
+                throw new InvalidOperationException($"Error: basePath:{basePath}; path:{path}", e);
+            }
         }
 
         /// <summary>
