@@ -73,8 +73,8 @@ namespace Microsoft.Build.Shared.FileSystem
 
             if (ex0 != ex1 || (ex0 == "" && !ResultsTheSame(result0, result1)))
             {
-                string res0 = result0 == null ? result0.Aggregate((x, y) => x + ", " + y) : "-";
-                string res1 = result1 == null ? result1.Aggregate((x, y) => x + ", " + y) : "-";
+                string res0 = result0 != null ? result0.Aggregate((x, y) => x + ", " + y) : "-";
+                string res1 = result1 != null ? result1.Aggregate((x, y) => x + ", " + y) : "-";
 
                 string error = $"Error in EnumerateFiles: path: {path}, searchPattern: {searchPattern}, searchOption: {searchOption}.\nex0: {ex0}\nresult0: {res0}\nex1: {ex1}\nresult1: {res1}";
                 throw new InvalidOperationException(error);
@@ -117,8 +117,8 @@ namespace Microsoft.Build.Shared.FileSystem
 
             if (ex0 != ex1 || (ex0 == "" && !ResultsTheSame(result0, result1)))
             {
-                string res0 = result0 == null ? result0.Aggregate((x, y) => x + ", " + y) : "-";
-                string res1 = result1 == null ? result1.Aggregate((x, y) => x + ", " + y) : "-";
+                string res0 = result0 != null ? result0.Aggregate((x, y) => x + ", " + y) : "-";
+                string res1 = result1 != null ? result1.Aggregate((x, y) => x + ", " + y) : "-";
 
                 string error = $"Error in EnumerateDirectories: path: {path}, searchPattern: {searchPattern}, searchOption: {searchOption}.\nex0: {ex0}\nresult0: {res0}\nex1: {ex1}\nresult1: {res1}";
                 throw new InvalidOperationException(error);
@@ -161,8 +161,8 @@ namespace Microsoft.Build.Shared.FileSystem
 
             if (ex0 != ex1 || (ex0 == "" && !ResultsTheSame(result0, result1)))
             {
-                string res0 = result0 == null ? result0.Aggregate((x, y) => x + ", " + y) : "-";
-                string res1 = result1 == null ? result1.Aggregate((x, y) => x + ", " + y) : "-";
+                string res0 = result0 != null ? result0.Aggregate((x, y) => x + ", " + y) : "-";
+                string res1 = result1 != null ? result1.Aggregate((x, y) => x + ", " + y) : "-";
 
                 string error = $"Error in EnumerateFileSystemEntries: path: {path}, searchPattern: {searchPattern}, searchOption: {searchOption}.\nex0: {ex0}\nresult0: {res0}\nex1: {ex1}\nresult1: {res1}";
                 throw new InvalidOperationException(error);
