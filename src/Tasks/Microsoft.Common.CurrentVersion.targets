@@ -6657,6 +6657,14 @@ Copyright (C) Microsoft Corporation. All rights reserved.
   <Target Name="CleanAppxPackage" />
   <Target Name="GetPackagingOutputs" />
 
+  <!--
+    Define dummy optional workloads targets. Design-time builds use the real targets
+    with the same names to determine whether the in-product acquisition experience
+    should be enabled. Since some projects may not have those targets defined, the dummy
+    targets defined here prevent design-time builds for such projects from failing.
+   -->
+  <Target Name="CollectSuggestedWorkloads" />
+
   <PropertyGroup>
     <MsAppxPackageTargets Condition="'$(MsAppxPackageTargets)'==''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\AppxPackage\Microsoft.AppXPackage.Targets</MsAppxPackageTargets>
   </PropertyGroup>
